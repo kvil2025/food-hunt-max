@@ -36,7 +36,7 @@ export const App: React.FC = () => {
     magnetLevel: 1,
   });
 
-  // Track active keys for smooth diagonal movement
+  // Track active keys for keyboard controls
   const keysDown = useRef<{ [key: string]: boolean }>({});
   const joystickVector = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
@@ -47,6 +47,10 @@ export const App: React.FC = () => {
     const engine = new GameEngine(canvasContainerRef.current, {
       onScoreGained: (amount, _worldX, _worldZ, label) => {
         setCoins(engine.coins);
+        // Haptic feedback for mobile
+        if ('vibrate' in navigator) {
+          try { navigator.vibrate(12); } catch {}
+        }
         // Spawn floating text
         const id = Date.now() + Math.random();
         setPopups((prev) => [
@@ -65,6 +69,9 @@ export const App: React.FC = () => {
       onStackChanged: (current, max) => {
         setCarriedCount(current);
         setMaxCapacity(max);
+        if ('vibrate' in navigator) {
+          try { navigator.vibrate(8); } catch {}
+        }
       },
       onOpenUpgradeShop: () => {
         setIsShopOpen(true);
@@ -90,7 +97,7 @@ export const App: React.FC = () => {
       if (keysDown.current['KeyA'] || keysDown.current['ArrowLeft']) x -= 1;
       if (keysDown.current['KeyD'] || keysDown.current['ArrowRight']) x += 1;
 
-      // If joystick is active, joystick takes priority or blends
+      // If joystick is active, joystick takes priority
       if (Math.hypot(joystickVector.current.x, joystickVector.current.y) > 0.05) {
         engine.setInput(joystickVector.current.x, joystickVector.current.y);
       } else {
@@ -130,7 +137,7 @@ export const App: React.FC = () => {
       if (Math.hypot(x, y) > 0.05) {
         engineRef.current.setInput(x, y);
       } else {
-        // Fallback to keyboard keys if any are pressed
+        // Fallback to keyboard keys if pressed
         let kx = 0;
         let ky = 0;
         if (keysDown.current['KeyW'] || keysDown.current['ArrowUp']) ky -= 1;
@@ -194,15 +201,18 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-[#1a162b] select-none">
+    <div className="fixed inset-0 w-full h-[100dvh] overflow-hidden bg-[#1a162b] select-none touch-none">
       {gameState === 'loading' ? (
         <LoadingScreen onStartGame={() => setGameState('playing')} />
       ) : (
         <>
-          {/* 3D WebGL Canvas */}
-          <div ref={canvasContainerRef} className="absolute inset-0 w-full h-full" />
+          {/* 3D WebGL Canvas (Ground Layer) */}
+          <div ref={canvasContainerRef} className="absolute inset-0 w-full h-full pointer-events-none" />
 
-          {/* HUD Overlay */}
+          {/* Full Screen Dynamic Touch / Virtual Joystick Layer */}
+          <VirtualJoystick onMove={handleJoystickMove} />
+
+          {/* HUD Overlay (Top Layer with pointer-events-none on backdrop, pointer-events-auto on buttons) */}
           <HUD
             coins={coins}
             level={level}
@@ -215,11 +225,6 @@ export const App: React.FC = () => {
             onToggleMusic={toggleMusic}
             onOpenShop={() => setIsShopOpen(true)}
           />
-
-          {/* Virtual Joystick (Bottom Left) */}
-          <div className="absolute bottom-8 left-8 z-30 pointer-events-auto">
-            <VirtualJoystick onMove={handleJoystickMove} />
-          </div>
 
           {/* Floating Points Popups */}
           {popups.map((p) => (

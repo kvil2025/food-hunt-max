@@ -73,16 +73,20 @@ export class GameEngine {
     this.scene.background = new THREE.Color(0xdbeafe); // Soft sky warm glow
     this.scene.fog = new THREE.FogExp2(0xdbeafe, 0.015);
 
-    // 2. Camera setup (Top-down isometric angle)
-    const aspect = container.clientWidth / container.clientHeight;
-    this.camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 1000);
-    this.camera.position.set(0, 22, 18);
+    // 2. Camera setup (Top-down isometric angle adapted for portrait mobile & desktop)
+    const w = container.clientWidth || window.innerWidth;
+    const h = container.clientHeight || window.innerHeight;
+    const aspect = w / h;
+    this.camera = new THREE.PerspectiveCamera(aspect < 1 ? 52 : 45, aspect, 0.1, 1000);
+    const camY = aspect < 1 ? 26 : 22;
+    const camZ = aspect < 1 ? 20 : 18;
+    this.camera.position.set(0, camY, camZ);
     this.camera.lookAt(0, 0, 0);
 
     // 3. Renderer setup
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    this.renderer.setSize(container.clientWidth, container.clientHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setSize(w, h);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(this.renderer.domElement);
@@ -448,9 +452,10 @@ export class GameEngine {
     // Update Player Animation & Stack Wobble
     updateAntAnimation(this.playerAnt, delta, isMoving, velX / delta, velZ / delta);
 
-    // Smooth Camera Follow
+    // Smooth Camera Follow adapted to portrait / landscape
+    const camDistZ = this.camera.aspect < 1 ? 20 : 16;
     const targetCamX = this.playerAnt.group.position.x;
-    const targetCamZ = this.playerAnt.group.position.z + 16;
+    const targetCamZ = this.playerAnt.group.position.z + camDistZ;
     this.camera.position.x += (targetCamX - this.camera.position.x) * delta * 4;
     this.camera.position.z += (targetCamZ - this.camera.position.z) * delta * 4;
     this.camera.lookAt(this.playerAnt.group.position.x, 0.8, this.playerAnt.group.position.z);
@@ -663,11 +668,14 @@ export class GameEngine {
 
   public onWindowResize = () => {
     if (!this.container || !this.renderer) return;
-    const w = this.container.clientWidth;
-    const h = this.container.clientHeight;
-    this.camera.aspect = w / h;
+    const w = this.container.clientWidth || window.innerWidth;
+    const h = this.container.clientHeight || window.innerHeight;
+    const aspect = w / h;
+    this.camera.aspect = aspect;
+    this.camera.fov = aspect < 1 ? 52 : 45;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   };
 
   public destroy() {

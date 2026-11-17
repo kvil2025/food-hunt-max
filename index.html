@@ -1,31 +1,36 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" style="touch-action: none; overflow: hidden; height: 100dvh; width: 100vw;">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐜</text></svg>" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#3b82f6" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#1a162b" />
     <title>FOOD HUNT MAX 🐜 - 3D Arcade Ant Colony</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700;800;900&family=Luckiest+Guy&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
     <style>
-      * {
-        touch-action: manipulation;
-        -webkit-touch-callout: none;
-        -webkit-user-select: none;
-        user-select: none;
-      }
-      body {
+      html, body, #root {
         margin: 0;
         padding: 0;
+        width: 100vw;
+        height: 100dvh;
         overflow: hidden;
+        position: fixed;
+        inset: 0;
+        touch-action: none !important;
+        -webkit-touch-callout: none !important;
+        -webkit-user-select: none !important;
+        user-select: none !important;
         background-color: #1a162b;
-        font-family: 'Fredoka', 'Nunito', system-ui, sans-serif;
+        font-family: 'Fredoka', 'Nunito', system-ui, -apple-system, sans-serif;
       }
       canvas {
         display: block;
         outline: none;
+        touch-action: none !important;
       }
     </style>
   </head>

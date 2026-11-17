@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createAnt, addCubeToAnt, clearAntCubes, updateAntAnimation, AntEntity } from './antModel';
+import { createAnt, addCubeToAnt, clearAntCubes, updateAntAnimation, transformToGoldenQueen, AntEntity } from './antModel';
 import { soundManager } from '../audio/soundManager';
 
 export interface FoodCubeItem {
@@ -398,6 +398,41 @@ export class GameEngine {
     this.scene.add(worker.group);
     this.workerAnts.push(worker);
     soundManager.playUpgrade();
+  }
+
+  // Apply Prestige: Queen Ant Transformation & Golden Era
+  public applyPrestige() {
+    transformToGoldenQueen(this.playerAnt);
+    this.sweetnessMultiplier *= 2;
+    this.coins += 250;
+
+    // Spawn Golden Sugar blocks around the nest hole
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      const x = this.holePosition.x + Math.cos(angle) * 4.5;
+      const z = this.holePosition.z + Math.sin(angle) * 4.5;
+      const cubeGeo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+      const cubeMat = new THREE.MeshStandardMaterial({
+        color: 0xffd700,
+        metalness: 0.85,
+        roughness: 0.15,
+        emissive: 0x553300,
+      });
+      const mesh = new THREE.Mesh(cubeGeo, cubeMat);
+      mesh.position.set(x, 0.45, z);
+      mesh.castShadow = true;
+      this.scene.add(mesh);
+
+      this.foodCubes.push({
+        id: `food_prestige_gold_${Date.now()}_${i}`,
+        mesh,
+        color: '#ffd700',
+        value: 100,
+        originalPos: new THREE.Vector3(x, 0.45, z),
+        isHarvested: false,
+        respawnTimer: 0,
+      });
+    }
   }
 
   public setInput(x: number, y: number) {

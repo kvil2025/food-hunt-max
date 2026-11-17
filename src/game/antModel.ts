@@ -297,3 +297,62 @@ export function updateAntAnimation(
     mesh.rotation.x = ant.wobbleX * factor;
   });
 }
+
+// Transform Ant into Golden Queen / King with 3D Crown
+export function transformToGoldenQueen(ant: AntEntity) {
+  const goldMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffd700,
+    metalness: 0.85,
+    roughness: 0.2,
+    emissive: 0x443300,
+  });
+
+  // Re-color head & abdomen
+  ant.head.material = goldMaterial;
+  ant.abdomen.material = goldMaterial;
+  ant.group.children.forEach(child => {
+    if (child instanceof THREE.Mesh && child !== ant.head && child !== ant.abdomen) {
+      child.material = goldMaterial;
+    }
+  });
+
+  // Add 3D Golden Crown on Head if not already present
+  if (!ant.head.getObjectByName('golden_crown')) {
+    const crownGroup = new THREE.Group();
+    crownGroup.name = 'golden_crown';
+    crownGroup.position.set(0, 0.52, 0.1);
+
+    // Crown Ring Base
+    const ringGeo = new THREE.CylinderGeometry(0.24, 0.22, 0.1, 16);
+    const crownMat = new THREE.MeshStandardMaterial({
+      color: 0xffd700,
+      metalness: 0.9,
+      roughness: 0.15,
+      emissive: 0x886600,
+    });
+    const ring = new THREE.Mesh(ringGeo, crownMat);
+    crownGroup.add(ring);
+
+    // 5 Pointy Crown Spikes
+    for (let i = 0; i < 5; i++) {
+      const angle = (i / 5) * Math.PI * 2;
+      const spikeGeo = new THREE.ConeGeometry(0.06, 0.18, 6);
+      const spike = new THREE.Mesh(spikeGeo, crownMat);
+      spike.position.set(Math.cos(angle) * 0.2, 0.12, Math.sin(angle) * 0.2);
+      crownGroup.add(spike);
+
+      // Ruby / Emerald Jewels on spikes
+      const gemGeo = new THREE.SphereGeometry(0.035, 6, 6);
+      const gemMat = new THREE.MeshStandardMaterial({
+        color: i % 2 === 0 ? 0xff0044 : 0x00e5ff,
+        emissive: i % 2 === 0 ? 0x660011 : 0x004466,
+        roughness: 0.1,
+      });
+      const gem = new THREE.Mesh(gemGeo, gemMat);
+      gem.position.set(Math.cos(angle) * 0.22, 0.05, Math.sin(angle) * 0.22);
+      crownGroup.add(gem);
+    }
+
+    ant.head.add(crownGroup);
+  }
+}

@@ -6,6 +6,7 @@ import { LoadingScreen } from './components/LoadingScreen';
 import { HUD } from './components/HUD';
 import { VirtualJoystick } from './components/VirtualJoystick';
 import { UpgradeShop, UpgradeStats } from './components/UpgradeShop';
+import { VictoryModal } from './components/VictoryModal';
 
 interface FloatingPopup {
   id: number;
@@ -24,6 +25,9 @@ export const App: React.FC = () => {
   const [carriedCount, setCarriedCount] = useState(0);
   const [maxCapacity, setMaxCapacity] = useState(4);
   const [isShopOpen, setIsShopOpen] = useState(false);
+  const [isVictoryOpen, setIsVictoryOpen] = useState(false);
+  const [prestigeCount, setPrestigeCount] = useState(0);
+  const hasTriggeredVictory = useRef(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isMusicOn, setIsMusicOn] = useState(true);
   const [popups, setPopups] = useState<FloatingPopup[]>([]);
@@ -131,6 +135,50 @@ export const App: React.FC = () => {
     };
   }, [gameState]);
 
+  // Check if player has maxed all upgrades for current tier
+  const isMaxedOut =
+    stats.speedLevel >= (10 + prestigeCount * 5) &&
+    stats.capacityLevel >= (12 + prestigeCount * 6) &&
+    stats.workersCount >= (6 + prestigeCount * 4) &&
+    stats.sweetnessLevel >= (8 + prestigeCount * 4) &&
+    stats.magnetLevel >= (6 + prestigeCount * 3);
+
+  // Auto trigger victory modal when maxed out
+  useEffect(() => {
+    if (isMaxedOut && !hasTriggeredVictory.current) {
+      hasTriggeredVictory.current = true;
+      setIsVictoryOpen(true);
+      soundManager.playUpgrade();
+      confetti({
+        particleCount: 150,
+        spread: 90,
+        origin: { y: 0.5 },
+      });
+    }
+  }, [isMaxedOut]);
+
+  const handlePrestige = () => {
+    if (engineRef.current) {
+      engineRef.current.applyPrestige();
+      setCoins(engineRef.current.coins);
+    }
+    setPrestigeCount((prev) => prev + 1);
+    hasTriggeredVictory.current = false; // Reset so they can achieve next era victory
+    setIsVictoryOpen(false);
+
+    // Notification popup
+    const id = Date.now() + Math.random();
+    setPopups((prev) => [
+      ...prev,
+      {
+        id,
+        text: '👑 ¡ERA DORADA DESBLOQUEADA! +250🪙',
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2 - 60,
+      },
+    ]);
+  };
+
   const handleJoystickMove = (x: number, y: number) => {
     joystickVector.current = { x, y };
     if (engineRef.current) {
@@ -212,7 +260,7 @@ export const App: React.FC = () => {
           {/* Full Screen Dynamic Touch / Virtual Joystick Layer */}
           <VirtualJoystick onMove={handleJoystickMove} />
 
-          {/* HUD Overlay (Top Layer with pointer-events-none on backdrop, pointer-events-auto on buttons) */}
+          {/* HUD Overlay */}
           <HUD
             coins={coins}
             level={level}
@@ -221,9 +269,12 @@ export const App: React.FC = () => {
             workersCount={stats.workersCount}
             isMuted={isMuted}
             isMusicOn={isMusicOn}
+            isMaxedOut={isMaxedOut}
+            prestigeCount={prestigeCount}
             onToggleMute={toggleMute}
             onToggleMusic={toggleMusic}
             onOpenShop={() => setIsShopOpen(true)}
+            onOpenVictory={() => setIsVictoryOpen(true)}
           />
 
           {/* Floating Points Popups */}
@@ -248,7 +299,18 @@ export const App: React.FC = () => {
             }}
             coins={coins}
             stats={stats}
+            prestigeCount={prestigeCount}
             onUpgrade={handleUpgrade}
+          />
+
+          {/* Victory & Ascension Modal */}
+          <VictoryModal
+            isOpen={isVictoryOpen}
+            onClose={() => setIsVictoryOpen(false)}
+            coins={coins}
+            level={level}
+            prestigeCount={prestigeCount}
+            onPrestige={handlePrestige}
           />
         </>
       )}

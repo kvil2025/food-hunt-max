@@ -1,5 +1,5 @@
 import React from 'react';
-import { Volume2, VolumeX, Music, ShoppingBag, Sparkles } from 'lucide-react';
+import { Volume2, VolumeX, Music, ShoppingBag, Sparkles, Crown } from 'lucide-react';
 import { soundManager } from '../audio/soundManager';
 
 interface HUDProps {
@@ -10,9 +10,12 @@ interface HUDProps {
   workersCount: number;
   isMuted: boolean;
   isMusicOn: boolean;
+  isMaxedOut: boolean;
+  prestigeCount: number;
   onToggleMute: () => void;
   onToggleMusic: () => void;
   onOpenShop: () => void;
+  onOpenVictory: () => void;
 }
 
 export const HUD: React.FC<HUDProps> = ({
@@ -23,9 +26,12 @@ export const HUD: React.FC<HUDProps> = ({
   workersCount,
   isMuted,
   isMusicOn,
+  isMaxedOut,
+  prestigeCount,
   onToggleMute,
   onToggleMusic,
   onOpenShop,
+  onOpenVictory,
 }) => {
   const isFull = carriedCount >= maxCapacity;
   const capacityPercent = Math.min((carriedCount / maxCapacity) * 100, 100);
@@ -94,8 +100,23 @@ export const HUD: React.FC<HUDProps> = ({
             </div>
           </div>
 
-          {/* Right Controls: Shop & Sound */}
+          {/* Right Controls: Shop, Victory Crown & Sound */}
           <div className="flex items-center gap-1 sm:gap-1.5 pointer-events-auto">
+            {/* Victory / Prestige Button when maxed or ascended */}
+            {(isMaxedOut || prestigeCount > 0) && (
+              <button
+                onClick={() => {
+                  soundManager.playPop();
+                  onOpenVictory();
+                }}
+                className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-2xl bg-gradient-to-tr from-amber-400 via-yellow-300 to-amber-500 text-slate-950 font-black text-xs uppercase shadow-[0_3px_0_#b45309] hover:brightness-110 active:translate-y-0.5 transition-all flex items-center gap-1 animate-pulse"
+                title="Colonia Suprema / Ascensión"
+              >
+                <Crown className="w-4 h-4 fill-slate-950" />
+                <span>{prestigeCount > 0 ? `ERA ${prestigeCount + 1}` : '👑 REINA'}</span>
+              </button>
+            )}
+
             <button
               onClick={() => {
                 soundManager.playPop();

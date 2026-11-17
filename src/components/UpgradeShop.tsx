@@ -15,6 +15,7 @@ interface UpgradeShopProps {
   onClose: () => void;
   coins: number;
   stats: UpgradeStats;
+  prestigeCount?: number;
   onUpgrade: (type: keyof UpgradeStats, cost: number) => void;
 }
 
@@ -23,6 +24,7 @@ export const UpgradeShop: React.FC<UpgradeShopProps> = ({
   onClose,
   coins,
   stats,
+  prestigeCount = 0,
   onUpgrade,
 }) => {
   // Listen for Escape key
@@ -44,7 +46,7 @@ export const UpgradeShop: React.FC<UpgradeShopProps> = ({
       name: 'Super Velocidad',
       desc: 'Corre más rápido por el suelo',
       level: stats.speedLevel,
-      maxLevel: 10,
+      maxLevel: 10 + prestigeCount * 5,
       cost: Math.round(30 * Math.pow(1.5, stats.speedLevel - 1)),
       icon: <Zap className="w-5 h-5 text-amber-400" />,
       color: 'from-amber-500/15 to-yellow-500/10 border-amber-500/30',
@@ -55,7 +57,7 @@ export const UpgradeShop: React.FC<UpgradeShopProps> = ({
       name: 'Mochila Gigante',
       desc: 'Apila más cubos en tu espalda (+2)',
       level: stats.capacityLevel,
-      maxLevel: 12,
+      maxLevel: 12 + prestigeCount * 6,
       cost: Math.round(45 * Math.pow(1.6, stats.capacityLevel - 1)),
       icon: <Package className="w-5 h-5 text-cyan-400" />,
       color: 'from-cyan-500/15 to-blue-500/10 border-cyan-500/30',
@@ -66,7 +68,7 @@ export const UpgradeShop: React.FC<UpgradeShopProps> = ({
       name: 'Hormiga Obrera',
       desc: 'Hormiguita azul bot que recolecta sola',
       level: stats.workersCount,
-      maxLevel: 6,
+      maxLevel: 6 + prestigeCount * 4,
       cost: Math.round(100 * Math.pow(2.0, stats.workersCount)),
       icon: <Users className="w-5 h-5 text-emerald-400" />,
       color: 'from-emerald-500/15 to-teal-500/10 border-emerald-500/30',
@@ -77,7 +79,7 @@ export const UpgradeShop: React.FC<UpgradeShopProps> = ({
       name: 'Dulzura de Azúcar',
       desc: 'Multiplica monedas por cada cubo',
       level: stats.sweetnessLevel,
-      maxLevel: 8,
+      maxLevel: 8 + prestigeCount * 4,
       cost: Math.round(60 * Math.pow(1.8, stats.sweetnessLevel - 1)),
       icon: <Sparkles className="w-5 h-5 text-pink-400" />,
       color: 'from-pink-500/15 to-rose-500/10 border-pink-500/30',
@@ -88,7 +90,7 @@ export const UpgradeShop: React.FC<UpgradeShopProps> = ({
       name: 'Imán de Alimentos',
       desc: 'Atrae cubos desde más lejos',
       level: stats.magnetLevel,
-      maxLevel: 6,
+      maxLevel: 6 + prestigeCount * 3,
       cost: Math.round(50 * Math.pow(1.7, stats.magnetLevel - 1)),
       icon: <Magnet className="w-5 h-5 text-purple-400" />,
       color: 'from-purple-500/15 to-indigo-500/10 border-purple-500/30',

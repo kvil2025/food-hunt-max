@@ -240,7 +240,12 @@ export const App: React.FC = () => {
           {/* Upgrade Shop Modal */}
           <UpgradeShop
             isOpen={isShopOpen}
-            onClose={() => setIsShopOpen(false)}
+            onClose={() => {
+              if (engineRef.current) {
+                engineRef.current.upgradePadCooldown = 3.5;
+              }
+              setIsShopOpen(false);
+            }}
             coins={coins}
             stats={stats}
             onUpgrade={handleUpgrade}

@@ -53,6 +53,7 @@ export class GameEngine {
   public totalDelivered: number = 0;
   public sweetnessMultiplier: number = 1;
   public magnetRadius: number = 2.0;
+  public upgradePadCooldown: number = 0;
 
   // Controls
   public inputVector = new THREE.Vector2(0, 0);
@@ -485,10 +486,14 @@ export class GameEngine {
     }
 
     // 4. Upgrade Pad Check
+    if (this.upgradePadCooldown > 0) {
+      this.upgradePadCooldown -= delta;
+    }
     const distToUpgrade = this.playerAnt.group.position.distanceTo(this.upgradePadPosition);
     if (distToUpgrade < 2.2) {
-      if (!this.isTouchingPad) {
+      if (!this.isTouchingPad && this.upgradePadCooldown <= 0) {
         this.isTouchingPad = true;
+        this.upgradePadCooldown = 3.0; // Cooldown to avoid re-triggering immediately
         this.callbacks.onOpenUpgradeShop();
       }
     } else {

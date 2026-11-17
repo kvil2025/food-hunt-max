@@ -30,6 +30,7 @@ export const App: React.FC = () => {
   const hasTriggeredVictory = useRef(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isMusicOn, setIsMusicOn] = useState(true);
+  const [isSpiderChasing, setIsSpiderChasing] = useState(false);
   const [popups, setPopups] = useState<FloatingPopup[]>([]);
 
   const [stats, setStats] = useState<UpgradeStats>({
@@ -87,6 +88,9 @@ export const App: React.FC = () => {
           spread: 70,
           origin: { y: 0.6 },
         });
+      },
+      onSpiderChase: (chasing) => {
+        setIsSpiderChasing(chasing);
       },
     });
 
@@ -271,6 +275,7 @@ export const App: React.FC = () => {
             isMusicOn={isMusicOn}
             isMaxedOut={isMaxedOut}
             prestigeCount={prestigeCount}
+            isSpiderChasing={isSpiderChasing}
             onToggleMute={toggleMute}
             onToggleMusic={toggleMusic}
             onOpenShop={() => setIsShopOpen(true)}

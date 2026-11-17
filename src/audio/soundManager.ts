@@ -140,6 +140,51 @@ class SoundManager {
     osc.stop(now + 0.04);
   }
 
+  // Spider hiss / alert screech when spotting the player
+  public playSpiderAlert() {
+    if (this.isMuted || !this.ctx) return;
+    this.resumeContext();
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(650, now);
+    osc.frequency.linearRampToValueAtTime(320, now + 0.22);
+
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.25);
+  }
+
+  // Backpack collapse crash sound when spider strikes!
+  public playBackpackCrash() {
+    if (this.isMuted || !this.ctx) return;
+    this.resumeContext();
+
+    const now = this.ctx.currentTime;
+    // Low thud
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(160, now);
+    osc.frequency.exponentialRampToValueAtTime(40, now + 0.3);
+
+    gain.gain.setValueAtTime(0.4, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.35);
+  }
+
   // Bouncy upbeat background melody
   public startMusic() {
     if (!this.ctx || this.musicInterval) return;

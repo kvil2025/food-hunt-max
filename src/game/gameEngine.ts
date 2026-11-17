@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { createAnt, addCubeToAnt, clearAntCubes, updateAntAnimation, transformToGoldenQueen, AntEntity } from './antModel';
+import { createSpider, updateSpiderAnimation, SpiderEntity } from './spiderModel';
 import { soundManager } from '../audio/soundManager';
 
 export interface FoodCubeItem {
@@ -26,6 +27,7 @@ export interface GameEngineCallbacks {
   onStackChanged: (current: number, max: number) => void;
   onOpenUpgradeShop: () => void;
   onLevelUp: (level: number) => void;
+  onSpiderChase?: (isChasing: boolean) => void;
 }
 
 export class GameEngine {
@@ -37,6 +39,8 @@ export class GameEngine {
   // Entities
   public playerAnt: AntEntity;
   public workerAnts: AntEntity[] = [];
+  public spider: SpiderEntity;
+  public playerInvincibleTimer: number = 0;
   public foodCubes: FoodCubeItem[] = [];
   public flyingCubes: FlyingCube[] = [];
 
@@ -110,7 +114,12 @@ export class GameEngine {
     this.playerAnt.group.position.set(-1, 0, 0);
     this.scene.add(this.playerAnt.group);
 
-    // 9. Resize & Events
+    // 9. Predator Spider (Floor hazard & hunter!)
+    this.spider = createSpider();
+    this.spider.group.position.set(8, 0, 8);
+    this.scene.add(this.spider.group);
+
+    // 10. Resize & Events
     window.addEventListener('resize', this.onWindowResize);
 
     this.start();
@@ -488,6 +497,15 @@ export class GameEngine {
     // Update Player Animation & Stack Wobble
     updateAntAnimation(this.playerAnt, delta, isMoving, velX / delta, velZ / delta);
 
+    // Player invincibility flashing effect when hit by spider
+    if (this.playerInvincibleTimer > 0) {
+      this.playerInvincibleTimer -= delta;
+      this.playerAnt.group.visible = Math.sin(this.playerInvincibleTimer * 25) > -0.2;
+      if (this.playerInvincibleTimer <= 0) {
+        this.playerAnt.group.visible = true;
+      }
+    }
+
     // Smooth Camera Follow adapted to portrait / landscape
     const camDistZ = this.camera.aspect < 1 ? 20 : 16;
     const targetCamX = this.playerAnt.group.position.x;
@@ -538,7 +556,10 @@ export class GameEngine {
     // 5. Update Worker Ants (Autonomous Bots)
     this.updateWorkers(delta);
 
-    // 6. Food Cube Respawning
+    // 6. Update Predator Spider (Floor hazard & chaser!)
+    this.updateSpider(delta);
+
+    // 7. Food Cube Respawning
     for (const food of this.foodCubes) {
       if (food.isHarvested) {
         food.respawnTimer -= delta;
@@ -704,6 +725,120 @@ export class GameEngine {
         }
       }
     });
+  }
+
+  // Update Predator Spider logic (Floor patrol, player tracking & backpack attack!)
+  private updateSpider(delta: number) {
+    const spider = this.spider;
+    if (!spider) return;
+
+    const distToPlayer = spider.group.position.distanceTo(this.playerAnt.group.position);
+
+    // 1. Detection & State Switch
+    if (distToPlayer < 8.0) {
+      if (spider.state === 'PATROL') {
+        spider.state = 'CHASE';
+        spider.speed = spider.chaseSpeed;
+        spider.alertIcon.visible = true;
+        soundManager.playSpiderAlert();
+        this.callbacks.onSpiderChase?.(true);
+      }
+      spider.targetPos.copy(this.playerAnt.group.position);
+    } else if (distToPlayer > 13.0 && spider.state === 'CHASE') {
+      spider.state = 'PATROL';
+      spider.speed = spider.patrolSpeed;
+      spider.alertIcon.visible = false;
+      this.callbacks.onSpiderChase?.(false);
+      spider.targetPos.copy(spider.patrolPoints[spider.currentPatrolIdx]);
+    } else if (spider.state === 'PATROL') {
+      // Check if reached current waypoint
+      const distToWp = spider.group.position.distanceTo(spider.targetPos);
+      if (distToWp < 1.4) {
+        spider.currentPatrolIdx = (spider.currentPatrolIdx + 1) % spider.patrolPoints.length;
+        spider.targetPos.copy(spider.patrolPoints[spider.currentPatrolIdx]);
+      }
+    }
+
+    // 2. Move Spider towards target
+    const dir = spider.targetPos.clone().sub(spider.group.position);
+    dir.y = 0;
+    const len = dir.length();
+    let isMoving = false;
+
+    if (len > 0.3) {
+      isMoving = true;
+      dir.normalize();
+      const moveAmount = spider.speed * delta;
+      spider.group.position.addScaledVector(dir, moveAmount);
+
+      const targetAngle = Math.atan2(dir.x, dir.z);
+      // Smooth turning towards direction
+      let diff = targetAngle - spider.group.rotation.y;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      spider.group.rotation.y += diff * delta * 7;
+    }
+
+    // Keep spider within arena
+    spider.group.position.x = THREE.MathUtils.clamp(spider.group.position.x, -20, 20);
+    spider.group.position.z = THREE.MathUtils.clamp(spider.group.position.z, -20, 20);
+
+    // Update Spider Crawl Animation
+    updateSpiderAnimation(spider, delta, isMoving);
+
+    // 3. Collision with Player Ant!
+    if (distToPlayer < 1.4 && this.playerInvincibleTimer <= 0) {
+      this.handleSpiderCatchPlayer();
+    }
+  }
+
+  // Spider strikes! Collapse backpack and scatter cubes
+  private handleSpiderCatchPlayer() {
+    this.playerInvincibleTimer = 3.0; // 3 seconds grace period
+
+    const dropped = clearAntCubes(this.playerAnt);
+    this.callbacks.onStackChanged(0, this.playerAnt.capacity);
+
+    soundManager.playBackpackCrash();
+
+    // Haptic buzz on mobile
+    if ('vibrate' in navigator) {
+      try { navigator.vibrate([100, 60, 150]); } catch {}
+    }
+
+    if (dropped.length > 0) {
+      // Scatter dropped cubes in physics explosion around the ant
+      dropped.forEach((cubeData, idx) => {
+        const scatterAngle = (idx / dropped.length) * Math.PI * 2 + (Math.random() - 0.5);
+        const dist = 2.0 + Math.random() * 3.5;
+        const x = this.playerAnt.group.position.x + Math.cos(scatterAngle) * dist;
+        const z = this.playerAnt.group.position.z + Math.sin(scatterAngle) * dist;
+
+        const cubeGeo = new THREE.BoxGeometry(0.7, 0.7, 0.7);
+        const cubeMat = new THREE.MeshStandardMaterial({
+          color: new THREE.Color(cubeData.color),
+          roughness: 0.25,
+        });
+        const mesh = new THREE.Mesh(cubeGeo, cubeMat);
+        mesh.position.set(x, 0.35, z);
+        mesh.castShadow = true;
+        this.scene.add(mesh);
+
+        this.foodCubes.push({
+          id: `food_scatter_${Date.now()}_${idx}`,
+          mesh,
+          color: cubeData.color,
+          value: cubeData.value,
+          originalPos: new THREE.Vector3(x, 0.35, z),
+          isHarvested: false,
+          respawnTimer: 0,
+        });
+      });
+
+      this.callbacks.onScoreGained(0, this.playerAnt.group.position.x, this.playerAnt.group.position.z, '💥 ¡LA ARAÑA TE DESMORONÓ LA MOCHILA!');
+    } else {
+      this.callbacks.onScoreGained(0, this.playerAnt.group.position.x, this.playerAnt.group.position.z, '😱 ¡CUIDADO CON LA ARAÑA!');
+    }
   }
 
   public onWindowResize = () => {

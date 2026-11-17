@@ -12,6 +12,7 @@ interface HUDProps {
   isMusicOn: boolean;
   isMaxedOut: boolean;
   prestigeCount: number;
+  isSpiderChasing?: boolean;
   onToggleMute: () => void;
   onToggleMusic: () => void;
   onOpenShop: () => void;
@@ -28,6 +29,7 @@ export const HUD: React.FC<HUDProps> = ({
   isMusicOn,
   isMaxedOut,
   prestigeCount,
+  isSpiderChasing = false,
   onToggleMute,
   onToggleMusic,
   onOpenShop,
@@ -147,8 +149,17 @@ export const HUD: React.FC<HUDProps> = ({
           </div>
         </div>
 
+        {/* Spider Danger Alert Banner */}
+        {isSpiderChasing && (
+          <div className="px-4 py-1.5 rounded-full bg-gradient-to-r from-red-600 to-rose-700 border-2 border-yellow-300 shadow-[0_0_20px_rgba(239,68,68,0.7)] text-yellow-200 font-black text-xs sm:text-sm uppercase tracking-wider animate-bounce flex items-center gap-1.5 pointer-events-auto">
+            <span className="text-base animate-spin" style={{ animationDuration: '3s' }}>🚨</span>
+            <span className="text-white">¡CUIDADO! ¡LA ARAÑA TE ESTÁ PERSIGUIENDO!</span>
+            <span className="text-base">🕷️</span>
+          </div>
+        )}
+
         {/* Top Floating Alert Banner (Cleanly placed at the very top under HUD, NEVER covers the ant in center!) */}
-        {isFull && (
+        {isFull && !isSpiderChasing && (
           <div className="px-4 py-1.5 rounded-full bg-gradient-to-r from-rose-600 via-red-500 to-amber-600 border-2 border-white shadow-2xl text-white font-black text-xs sm:text-sm uppercase tracking-wider animate-bounce flex items-center gap-1.5 pointer-events-auto">
             <span className="text-sm">⚠️</span>
             <span>¡MOCHILA LLENA! ENTREGA EN EL AGUJERO</span>
